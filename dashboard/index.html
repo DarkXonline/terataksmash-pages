@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Malaysia State Totals Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #f59e0b;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(25px, 3vw, 36px);
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 7px 10px;
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input,
+    button {
+      font: inherit;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      padding: 9px 12px;
+      background: #fff;
+    }
+
+    input {
+      width: 75px;
+      text-align: center;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--text);
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 22px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .dot.error {
+      background: var(--danger);
+    }
+
+    .dot.loading {
+      background: var(--warning);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .metric {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 750;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-small {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 18px;
+    }
+
+    .card-title {
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 520px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    td:last-child,
+    th:last-child {
+      text-align: right;
+    }
+
+    .rank {
+      color: var(--muted);
+      width: 35px;
+    }
+
+    .state {
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .error-box {
+      display: none;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+
+    .endpoint {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .countdown {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    .last-update {
+      color: var(--muted);
+    }
+
+    @media (max-width: 950px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        flex-direction: column;
+      }
+
+      .controls {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 16px;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .control-group {
+        grid-column: 1 / -1;
+      }
+
+      .chart-wrap {
+        height: 400px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <!-- HEADER -->
+    <header>
+      <div>
+        <h1>Malaysia State Totals</h1>
+        <p class="subtitle">
+          Live dashboard powered by the state_totals API
+        </p>
+      </div>
+
+      <div class="controls">
+
+        <!-- REFRESH INTERVAL -->
+        <div class="control-group">
+          <label for="interval">
+            Auto-refresh
+          </label>
+
+          <input
+            id="interval"
+            type="number"
+            min="1"
+            step="1"
+            value="1"
+            aria-label="Refresh interval in seconds"
+          />
+
+          <span>sec</span>
+        </div>
+
+        <!-- PAUSE -->
+        <button
+          id="toggleAuto"
+          class="btn-secondary"
+        >
+          Pause auto-refresh
+        </button>
+
+        <!-- MANUAL REFRESH -->
+        <button
+          id="refresh"
+          class="btn-primary"
+        >
+          ↻ Refresh now
+        </button>
+
+      </div>
+    </header>
+
+
+    <!-- STATUS -->
+    <div class="status">
+
+      <span
+        id="statusDot"
+        class="dot"
+      ></span>
+
+      <span id="statusText">
+        Loading…
+      </span>
+
+      <span>•</span>
+
+      <span>
+        Next update:
+        <span
+          id="countdown"
+          class="countdown"
+        >
+          —
+        </span>
+      </span>
+
+    </div>
+
+
+    <!-- ERROR -->
+    <div
+      id="errorBox"
+      class="error-box"
+    ></div>
+
+
+    <!-- SUMMARY CARDS -->
+    <section class="cards">
+
+      <!-- TOTAL -->
+      <div class="card">
+
+        <div class="metric-label">
+          Total count
+        </div>
+
+        <div
+          id="totalCount"
+          class="metric"
+        >
+          —
+        </div>
+
+      </div>
+
+
+      <!-- NUMBER OF STATES -->
+      <div class="card">
+
+        <div class="metric-label">
+          States / federal territory
+        </div>
+
+        <div
+          id="stateCount"
+          class="metric"
+        >
+          —
+        </div>
+
+      </div>
+
+
+      <!-- HIGHEST -->
+      <div class="card">
+
+        <div class="metric-label">
+          Highest count
+        </div>
+
+        <div
+          id="highestState"
+          class="metric-small"
+        >
+          —
+        </div>
+
+        <div
+          id="highestValue"
+          style="color: var(--muted); margin-top: 4px"
+        >
+          —
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- MAIN CONTENT -->
+    <section class="grid">
+
+      <!-- CHART -->
+      <div class="card">
+
+        <div class="card-title">
+          Count by state
+        </div>
+
+        <div class="chart-wrap">
+
+          <canvas id="stateChart"></canvas>
+
+        </div>
+
+      </div>
+
+
+      <!-- TABLE -->
+      <div class="card">
+
+        <div class="card-title">
+          Live data
+        </div>
+
+        <div class="table-wrap">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>#</th>
+                <th>State</th>
+                <th>Count</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="tableBody">
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- API -->
+    <div class="endpoint">
+
+      GET
+
+      <span id="endpointText"></span>
+
+    </div>
+
+  </main>
+
+
+  <script>
+
+    /*
+     * ============================================================
+     * API CONFIGURATION
+     * ============================================================
+     */
+
+    const API_URL =
+      "https://teratak-pb.07102020.xyz/api/collections/state_totals/records?page=1&perPage=1000&skipTotal=1";
+
+
+    /*
+     * ============================================================
+     * VARIABLES
+     * ============================================================
+     */
+
+    let chart = null;
+
+    let autoRefresh = true;
+
+    let refreshTimer = null;
+
+    let countdownTimer = null;
+
+    let nextRefreshAt = 0;
+
+    let data = [];
+
+
+    /*
+     * ============================================================
+     * DOM HELPER
+     * ============================================================
+     */
+
+    const $ = (id) => {
+      return document.getElementById(id);
+    };
+
+
+    /*
+     * ============================================================
+     * NUMBER FORMATTER
+     * ============================================================
+     */
+
+    function formatNumber(value) {
+
+      return Number(value).toLocaleString("en-MY");
+
+    }
+
+
+    /*
+     * ============================================================
+     * STATE NAME FORMATTER
+     * ============================================================
+     */
+
+    function titleCase(value) {
+
+      return String(value)
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+
+    }
+
+
+    /*
+     * ============================================================
+     * SHOW API URL
+     * ============================================================
+     */
+
+    $("endpointText").textContent = API_URL;
+
+
+    /*
+     * ============================================================
+     * STATUS
+     * ============================================================
+     */
+
+    function setStatus(
+      text,
+      type = "ok"
+    ) {
+
+      $("statusText").textContent = text;
+
+      $("statusDot").className =
+        "dot" +
+        (
+          type === "error"
+            ? " error"
+            : type === "loading"
+              ? " loading"
+              : ""
+        );
+
+    }
+
+
+    /*
+     * ============================================================
+     * ERROR MESSAGE
+     * ============================================================
+     */
+
+    function showError(message) {
+
+      $("errorBox").textContent = message;
+
+      $("errorBox").style.display = "block";
+
+    }
+
+
+    function clearError() {
+
+      $("errorBox").style.display = "none";
+
+    }
+
+
+    /*
+     * ============================================================
+     * RENDER DASHBOARD
+     * ============================================================
+     */
+
+    function render(rows) {
+
+      /*
+       * Sort largest -> smallest
+       */
+
+      data = [...rows].sort(
+        (a, b) =>
+          Number(b.count) -
+          Number(a.count)
+      );
+
+
+      /*
+       * Calculate total
+       */
+
+      const total =
+        data.reduce(
+          (sum, item) =>
+            sum + Number(item.count || 0),
+          0
+        );
+
+
+      /*
+       * Highest
+       */
+
+      const highest = data[0];
+
+
+      /*
+       * Summary cards
+       */
+
+      $("totalCount").textContent =
+        formatNumber(total);
+
+
+      $("stateCount").textContent =
+        formatNumber(data.length);
+
+
+      $("highestState").textContent =
+        highest
+          ? titleCase(highest.state)
+          : "—";
+
+
+      $("highestValue").textContent =
+        highest
+          ? formatNumber(highest.count)
+          : "—";
+
+
+      /*
+       * ========================================================
+       * TABLE
+       * ========================================================
+       */
+
+      $("tableBody").innerHTML =
+        data
+          .map(
+            (item, index) => {
+
+              return `
+                <tr>
+
+                  <td class="rank">
+                    ${index + 1}
+                  </td>
+
+                  <td class="state">
+                    ${titleCase(item.state)}
+                  </td>
+
+                  <td>
+                    ${formatNumber(item.count)}
+                  </td>
+
+                </tr>
+              `;
+
+            }
+          )
+          .join("");
+
+
+      /*
+       * ========================================================
+       * CHART
+       * ========================================================
+       */
+
+      const ctx =
+        $("stateChart").getContext("2d");
+
+
+      /*
+       * Destroy previous chart
+       */
+
+      if (chart) {
+
+        chart.destroy();
+
+      }
+
+
+      /*
+       * Create chart
+       */
+
+      chart =
+        new Chart(
+          ctx,
+          {
+
+            type: "bar",
+
+            data: {
+
+              labels:
+                data.map(
+                  item =>
+                    titleCase(item.state)
+                ),
+
+              datasets: [
+
+                {
+
+                  label: "Count",
+
+                  data:
+                    data.map(
+                      item =>
+                        Number(item.count)
+                    ),
+
+                  backgroundColor:
+                    data.map(
+                      (_, index) =>
+                        index === 0
+                          ? "#2563eb"
+                          : "#93c5fd"
+                    ),
+
+                  borderRadius: 7,
+
+                  borderSkipped: false
+
+                }
+
+              ]
+
+            },
+
+            options: {
+
+              responsive: true,
+
+              maintainAspectRatio: false,
+
+              plugins: {
+
+                legend: {
+                  display: false
+                },
+
+                tooltip: {
+
+                  callbacks: {
+
+                    label: (context) => {
+
+                      return (
+                        " " +
+                        formatNumber(
+                          context.raw
+                        )
+                      );
+
+                    }
+
+                  }
+
+                }
+
+              },
+
+              scales: {
+
+                y: {
+
+                  beginAtZero: true,
+
+                  ticks: {
+
+                    callback: (value) => {
+
+                      return formatNumber(value);
+
+                    }
+
+                  },
+
+                  grid: {
+
+                    color: "#eef0f4"
+
+                  }
+
+                },
+
+                x: {
+
+                  grid: {
+
+                    display: false
+
+                  },
+
+                  ticks: {
+
+                    maxRotation: 60,
+
+                    minRotation: 35
+
+                  }
+
+                }
+
+              }
+
+            }
+
+          }
+        );
+
+    }
+
+
+    /*
+     * ============================================================
+     * FETCH DATA
+     * ============================================================
+     */
+
+    async function fetchData() {
+
+      setStatus(
+        "Updating…",
+        "loading"
+      );
+
+      $("refresh").disabled = true;
+
+      clearError();
+
+
+      try {
+
+        /*
+         * GET request
+         */
+
+        const response =
+          await fetch(
+            API_URL,
+            {
+              method: "GET",
+
+              cache: "no-store"
+            }
+          );
+
+
+        /*
+         * HTTP error
+         */
+
+        if (!response.ok) {
+
+          throw new Error(
+            `HTTP ${response.status} ${response.statusText}`
+          );
+
+        }
+
+
+        /*
+         * JSON
+         */
+
+        const json =
+          await response.json();
+
+
+        /*
+         * Check API structure
+         */
+
+        if (
+          !Array.isArray(
+            json.items
+          )
+        ) {
+
+          throw new Error(
+            "API response does not contain an items array."
+          );
+
+        }
+
+
+        /*
+         * Update dashboard
+         */
+
+        render(json.items);
+
+
+        /*
+         * Status
+         */
+
+        setStatus(
+          `Updated ${new Date().toLocaleTimeString("en-MY")}`,
+          "ok"
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(error);
+
+
+        setStatus(
+          "Update failed",
+          "error"
+        );
+
+
+        showError(
+          `Could not fetch live data: ${error.message}. ` +
+          `If this page is hosted on another domain, ` +
+          `the API must allow CORS requests.`
+        );
+
+      }
+
+      finally {
+
+        $("refresh").disabled = false;
+
+        scheduleNext();
+
+      }
+
+    }
+
+
+    /*
+     * ============================================================
+     * GET REFRESH INTERVAL
+     * ============================================================
+     */
+
+    function getIntervalMs() {
+
+      const seconds =
+        Math.max(
+          1,
+          Number(
+            $("interval").value
+          ) || 1
+        );
+
+
+      return seconds * 1000;
+
+    }
+
+
+    /*
+     * ============================================================
+     * SCHEDULE NEXT UPDATE
+     * ============================================================
+     */
+
+    function scheduleNext() {
+
+      clearTimeout(
+        refreshTimer
+      );
+
+
+      /*
+       * Auto-refresh disabled
+       */
+
+      if (!autoRefresh) {
+
+        $("countdown").textContent =
+          "paused";
+
+        return;
+
+      }
+
+
+      /*
+       * Calculate next update
+       */
+
+      const interval =
+        getIntervalMs();
+
+
+      nextRefreshAt =
+        Date.now() + interval;
+
+
+      refreshTimer =
+        setTimeout(
+          fetchData,
+          interval
+        );
+
+    }
+
+
+    /*
+     * ============================================================
+     * COUNTDOWN
+     * ============================================================
+     */
+
+    function updateCountdown() {
+
+      if (!autoRefresh) {
+
+        $("countdown").textContent =
+          "paused";
+
+        return;
+
+      }
+
+
+      const remaining =
+        Math.max(
+          0,
+          nextRefreshAt -
+          Date.now()
+        );
+
+
+      $("countdown").textContent =
+        `${(
+          remaining / 1000
+        ).toFixed(1)}s`;
+
+    }
+
+
+    /*
+     * ============================================================
+     * MANUAL REFRESH BUTTON
+     * ============================================================
+     */
+
+    $("refresh")
+      .addEventListener(
+        "click",
+        fetchData
+      );
+
+
+    /*
+     * ============================================================
+     * PAUSE / RESUME
+     * ============================================================
+     */
+
+    $("toggleAuto")
+      .addEventListener(
+        "click",
+        () => {
+
+          autoRefresh =
+            !autoRefresh;
+
+
+          if (autoRefresh) {
+
+            $("toggleAuto").textContent =
+              "Pause auto-refresh";
+
+            scheduleNext();
+
+          }
+
+          else {
+
+            $("toggleAuto").textContent =
+              "Resume auto-refresh";
+
+            clearTimeout(
+              refreshTimer
+            );
+
+            $("countdown").textContent =
+              "paused";
+
+          }
+
+        }
+      );
+
+
+    /*
+     * ============================================================
+     * INTERVAL CHANGE
+     * ============================================================
+     */
+
+    $("interval")
+      .addEventListener(
+        "change",
+        () => {
+
+          let value =
+            Number(
+              $("interval").value
+            );
+
+
+          if (
+            !Number.isFinite(value) ||
+            value < 1
+          ) {
+
+            value = 1;
+
+          }
+
+
+          $("interval").value =
+            value;
+
+
+          /*
+           * Restart timer immediately
+           */
+
+          if (autoRefresh) {
+
+            scheduleNext();
+
+          }
+
+        }
+      );
+
+
+    /*
+     * ============================================================
+     * COUNTDOWN TIMER
+     * ============================================================
+     */
+
+    countdownTimer =
+      setInterval(
+        updateCountdown,
+        100
+      );
+
+
+    /*
+     * ============================================================
+     * INITIAL LOAD
+     * ============================================================
+     */
+
+    fetchData();
+
+  </script>
+
+</body>
+</html>
