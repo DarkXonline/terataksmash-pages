@@ -380,6 +380,13 @@
                     </div>
                 `;
                 ui.logContainer.appendChild(logEntry);
+
+                // Limit log output to 20 entries max
+                const logEntries = ui.logContainer.querySelectorAll('.log-entry');
+                if (logEntries.length > 20) {
+                    logEntries[0].remove();
+                }
+
                 ui.logContainer.scrollTop = ui.logContainer.scrollHeight;
             }
 
@@ -393,6 +400,13 @@
                     <span>Triggered Error Handling. Pausing auto-submit for <strong>${seconds} seconds</strong>...</span>
                 `;
                 ui.logContainer.appendChild(logEntry);
+
+                // Limit log output to 20 entries max
+                const logEntries = ui.logContainer.querySelectorAll('.log-entry');
+                if (logEntries.length > 20) {
+                    logEntries[0].remove();
+                }
+
                 ui.logContainer.scrollTop = ui.logContainer.scrollHeight;
             }
         });
